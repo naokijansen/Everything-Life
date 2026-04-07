@@ -1,0 +1,255 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.logbook { padding: 1.5rem 0; max-width: 780px; }
+.logbook-header { margin-bottom: 2rem; }
+.logbook-header h1 { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.logbook-header p { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+.phase { margin-bottom: 1.5rem; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; }
+.phase-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; background: var(--color-background-secondary); user-select: none; }
+.phase-num { font-size: 11px; font-weight: 500; color: var(--color-text-tertiary); min-width: 28px; }
+.phase-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+.phase-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.badge-concept { background: #E6F1FB; color: #0C447C; }
+.badge-frontend { background: #EAF3DE; color: #27500A; }
+.badge-backend { background: #FAEEDA; color: #633806; }
+.badge-calendar { background: #EEEDFE; color: #3C3489; }
+.badge-infra { background: #FCEBEB; color: #791F1F; }
+.badge-polish { background: #E1F5EE; color: #085041; }
+.badge-branding { background: #FBEAF0; color: #72243E; }
+.chevron { font-size: 12px; color: var(--color-text-tertiary); transition: transform 0.2s; }
+.chevron.open { transform: rotate(90deg); }
+.phase-body { padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.2s; }
+.phase-body.open { max-height: 2000px; padding: 12px 16px 16px; }
+.entry { display: flex; gap: 12px; margin-bottom: 10px; }
+.entry:last-child { margin-bottom: 0; }
+.entry-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+.dot-concept { background: #378ADD; }
+.dot-frontend { background: #639922; }
+.dot-backend { background: #BA7517; }
+.dot-calendar { background: #7F77DD; }
+.dot-infra { background: #E24B4A; }
+.dot-polish { background: #1D9E75; }
+.dot-branding { background: #D4537E; }
+.entry-text { font-size: 13px; color: var(--color-text-secondary); line-height: 1.55; }
+.entry-text strong { font-weight: 500; color: var(--color-text-primary); }
+.divider { height: 0.5px; background: var(--color-border-tertiary); margin: 10px 0; }
+.live-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #0F6E56; background: #E1F5EE; padding: 2px 8px; border-radius: 10px; margin-left: 8px; }
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: #1D9E75; }
+</style>
+
+<div class="logbook">
+  <div class="logbook-header">
+    <h1>Naoki's Logs — Dashboard Build Log <span class="live-pill"><span class="live-dot"></span>live</span></h1>
+    <p>https://dashboard.robbertkanado.com · last updated: April 2025</p>
+  </div>
+
+  <div class="phase" id="p1">
+    <div class="phase-header" onclick="toggle('p1')">
+      <span class="phase-num">01</span>
+      <span class="phase-title">Concept & identity</span>
+      <span class="phase-badge badge-concept">concept</span>
+      <span class="chevron" id="p1-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p1-body">
+      <div class="entry"><span class="entry-dot dot-concept"></span><span class="entry-text"><strong>OpenClaw identity</strong> — defined the character brief: brutally honest, no-filter accountability partner with a professional edge. Distinct from the personal assistant agent.</span></div>
+      <div class="entry"><span class="entry-dot dot-concept"></span><span class="entry-text"><strong>Agent architecture</strong> — designed a 2-agent system. Focused on Agent 1 (PA). Full feature set mapped: quadrant classification, escalation rules, quadrant drift detection, adaptive 3-ping daily rhythm based on wake time, Telegram interface on VPS.</span></div>
+      <div class="entry"><span class="entry-dot dot-concept"></span><span class="entry-text"><strong>Productivity matrix defined</strong> — 4 quadrants: 🔴 Red (want to do, counterproductive), 🟢 Green (want to do, productive), 🟡 Yellow (don't want to do, pointless), 🔵 Blue (don't want to do, necessary).</span></div>
+      <div class="entry"><span class="entry-dot dot-concept"></span><span class="entry-text"><strong>Design decisions</strong> — soft dark mode (warm grays, Claude-style), quadrant as main view, done stack on right, Calendar and Heatmap tabs, GitHub-style heatmap, JSON backend on VPS, Cloudflare subdomain, no auth, responsive for laptop and phone.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p2">
+    <div class="phase-header" onclick="toggle('p2')">
+      <span class="phase-num">02</span>
+      <span class="phase-title">Frontend MVP</span>
+      <span class="phase-badge badge-frontend">frontend</span>
+      <span class="chevron" id="p2-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p2-body">
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Single HTML file</strong> — 4 interactive quadrant panels with color-coded tasks.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Task interactions</strong> — add tasks per quadrant; check off tasks → animate into done stack with timestamp and color dot; right-click done items → context menu to move back to any quadrant.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Drag and drop</strong> — drag tasks between quadrants with visual drop highlighting.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Heatmap v1</strong> — full year GitHub-style heatmap, green intensity scaling by task count, click day → popup with every task completed that day, today highlighted with green ring.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Archive button</strong> — pushes done tasks into heatmap history.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p3">
+    <div class="phase-header" onclick="toggle('p3')">
+      <span class="phase-num">03</span>
+      <span class="phase-title">Backend & deployment</span>
+      <span class="phase-badge badge-backend">backend</span>
+      <span class="chevron" id="p3-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p3-body">
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>REST API</strong> (Node.js/Express) — three endpoints: read state, write state, archive done tasks. All protected with x-api-key header. State persisted to state.json. Frontend served as static files from public/.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Frontend wired to API</strong> — loads state on boot, saves after every change with 600ms debounce, loading screen on boot, sync dot in header (grey/yellow/green/red) showing save status. Archive button calls API instead of only updating local state.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Infrastructure</strong> — Node.js via nvm on Ubuntu VPS, PM2 for process persistence, Nginx as reverse proxy (port 80/443 → Node 3001), SSL via Let's Encrypt/certbot, Cloudflare DNS A record → dashboard.robbertkanado.com, ports 80 and 443 opened in ufw and Hetzner firewall, Cloudflare SSL mode set to Full.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Midnight cron job</strong> — auto-archives any uncleared done tasks into heatmap history at midnight.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Deployment fix</strong> — corrected filename from index_1.html → index.html on server via mv.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p4">
+    <div class="phase-header" onclick="toggle('p4')">
+      <span class="phase-num">04</span>
+      <span class="phase-title">Calendar tab — built from scratch</span>
+      <span class="phase-badge badge-calendar">calendar</span>
+      <span class="chevron" id="p4-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p4-body">
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Architecture</strong> — calendar events are independent from quadrant tasks, stored in state.calendar key, persisted to state.json. Added calendar: {} and calNextId: 1 to DEFAULT_STATE; validateState updated for backward-compatible migration.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Week view</strong> — time grid, colored event blocks, current-time red line, sticky day headers, all-day strip, month view toggle. Prev/next/today navigation with dynamic heading.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Event creation</strong> — click empty time slot or + Add button → modal for name, date, from/to time, category. Click any event to edit.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Categories v1</strong> — Class (blue), Birthday (purple), Personal (yellow), Work (green), Study (red), Hobby (orange), Chore (dark purple).</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p5">
+    <div class="phase-header" onclick="toggle('p5')">
+      <span class="phase-num">05</span>
+      <span class="phase-title">Calendar features — iterative</span>
+      <span class="phase-badge badge-calendar">calendar</span>
+      <span class="chevron" id="p5-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p5-body">
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Drag to move</strong> — pointer events (touch support), cursor-offset fix (no jump when grabbing mid-event), 15-minute snapping, cross-day support.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Drag to resize</strong> — bottom edge handle, 15-minute snapping.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Overlap layout</strong> — greedy column-track algorithm so concurrent events sit side by side instead of stacking.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Arrow key navigation</strong> — left/right to move between weeks/months. Hover an event + up/down to nudge ±15min, debounced save.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>All-day events</strong> — checkbox in modal, sticky strip above time grid that doesn't scroll.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Cmd+Z undo</strong> — per-action undo stack (add, edit, move, resize, delete) plus bulk undo for imports.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>iCal import</strong> — .ics parser with UTC timezone handling, TZID detection, weekly recurring event expansion with BYDAY support, keyword-based category guessing.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Month view</strong> — Fantastical-style grid, colored pills per day, click to jump to that week.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p6">
+    <div class="phase-header" onclick="toggle('p6')">
+      <span class="phase-num">06</span>
+      <span class="phase-title">Quadrant improvements</span>
+      <span class="phase-badge badge-frontend">frontend</span>
+      <span class="chevron" id="p6-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p6-body">
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Right-click context menu on tasks</strong> — three options: Delete, Add to today's calendar (instant), Add to calendar with date/time picker (modal with task name pre-filled).</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Intra-quadrant reordering</strong> — drag tasks within the same quadrant to set priority order, visual insert indicator. Cross-quadrant drag respects drop position.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p7">
+    <div class="phase-header" onclick="toggle('p7')">
+      <span class="phase-num">07</span>
+      <span class="phase-title">Mobile & responsive layout</span>
+      <span class="phase-badge badge-frontend">frontend</span>
+      <span class="chevron" id="p7-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p7-body">
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Portrait layout</strong> — stacked columns, compact header, 2×2 quadrant grid, done stack wraps horizontally.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Landscape layout</strong> — locked height, side-by-side layout, narrower columns.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Calendar mobile</strong> — full 7-day horizontal scroll with sticky time gutter and sticky header (3-day view scrapped). Today's column auto-scrolls into view on load. Event text wraps instead of truncating.</span></div>
+      <div class="entry"><span class="entry-dot dot-frontend"></span><span class="entry-text"><strong>Heatmap</strong> — 16 weeks on mobile (fits without scrolling), 52 weeks on desktop.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p8">
+    <div class="phase-header" onclick="toggle('p8')">
+      <span class="phase-num">08</span>
+      <span class="phase-title">Bug fixes</span>
+      <span class="phase-badge badge-infra">fixes</span>
+      <span class="chevron" id="p8-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p8-body">
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Drag jump bug</strong> — double-counted scrollTop because getBoundingClientRect() already accounts for scroll.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>iCal timezone</strong> — events were 2 hours early; parser stripped the Z suffix and treated UTC times as local. Fixed by passing Z through to new Date() so browser converts correctly.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Hour density</strong> — reduced from 64px to 44px per hour so the full day is visible with less scrolling.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Modal overflow</strong> — widened and added box-sizing: border-box so date/time fields don't bleed outside the card.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Dropdown styling</strong> — appearance: none with custom SVG chevron, color-scheme: dark on native date/time inputs.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Heatmap mobile scroll</strong> — was auto-scrolling to scrollWidth (far right = oldest). Fixed by switching to 16-week render that fits the screen without needing scroll.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p9">
+    <div class="phase-header" onclick="toggle('p9')">
+      <span class="phase-num">09</span>
+      <span class="phase-title">Data integrity & backup system</span>
+      <span class="phase-badge badge-infra">infra</span>
+      <span class="chevron" id="p9-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p9-body">
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Heatmap data loss fix</strong> — the 600ms debounced saveState() could fire mid-archive and POST old state back, overwriting what /api/archive had just written. Fix: cancel pending save timer at the start of clearDone(), then explicitly call saveState() after local state is updated. One April 5th entry (4 tasks) was confirmed lost and unrecoverable.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Rolling backup system</strong> — every /api/archive call snapshots state.json to ~/openclaw/backups/state-YYYY-MM-DD.json before mutating. First daily POST /api/state also writes a backup. Files older than 30 days are auto-pruned. GET /api/backups lists what's available. Restoring is one cp command.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>PM2 PATH fix</strong> — fixed pm2 PATH issue for SSH deploys. Added pm2pi as a persistent shell alias on Mac.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p10">
+    <div class="phase-header" onclick="toggle('p10')">
+      <span class="phase-num">10</span>
+      <span class="phase-title">Calendar improvements</span>
+      <span class="phase-badge badge-calendar">calendar</span>
+      <span class="chevron" id="p10-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p10-body">
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Color fix</strong> — birthday and chore had near-identical purple colors. Birthday → rose pink (#d06090), Chore stays violet (#7860b8).</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>National Holiday category</strong> — added as eighth category in teal (#2ec4b6), with Dutch keyword auto-detection in the ICS importer (koningsdag, bevrijding, kerst, etc.). All category dropdowns pull from the central CAL_CATS object automatically.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Archived tasks chip</strong> — added "✓ N done" chip in the calendar's all-day strip, colored by the dominant quadrant of that day. Reads directly from state.history (nothing stored twice), opens existing day popup on click.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Mobile column width</strong> — increased from 68px to 114px, so ~3 days are visible before horizontal scroll (was 5 narrow ones).</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Long-press on mobile</strong> — 480ms long-press as touch equivalent of right-click for task context menus, with haptic vibration on Android.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p11">
+    <div class="phase-header" onclick="toggle('p11')">
+      <span class="phase-num">11</span>
+      <span class="phase-title">List view & bulk editing</span>
+      <span class="phase-badge badge-calendar">calendar</span>
+      <span class="chevron" id="p11-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p11-body">
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>List tab</strong> — chronological agenda of all upcoming events grouped by date. Each row shows category color dot, time, name, and category pill.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Row selection</strong> — clicking a row checkbox selects it. Shift-click selects a range (file manager behavior), anchor point tracked and resets on clear.</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Bulk action bar</strong> — appears at the bottom when items are selected. Category dropdown + Reclassify / Delete / ✕ buttons. Selected category persists across re-renders (agendaBulkCat). All bulk actions preserve scroll position via refreshAgendaKeepScroll().</span></div>
+      <div class="entry"><span class="entry-dot dot-calendar"></span><span class="entry-text"><strong>Reclassify modal</strong> — briefly added then removed as redundant once in-list bulk editing worked.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p12">
+    <div class="phase-header" onclick="toggle('p12')">
+      <span class="phase-num">12</span>
+      <span class="phase-title">Persistence & branding</span>
+      <span class="phase-badge badge-branding">branding</span>
+      <span class="chevron" id="p12-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p12-body">
+      <div class="entry"><span class="entry-dot dot-branding"></span><span class="entry-text"><strong>Tab & view persistence</strong> — active tab and calendar sub-view written to localStorage on every change, restored on page load. Refresh keeps you exactly where you were.</span></div>
+      <div class="entry"><span class="entry-dot dot-branding"></span><span class="entry-text"><strong>Renamed to Naoki's Logs</strong> — title and loading screen updated, header subtitle → "Everything Place". No remaining "OpenClaw" references in the file.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p13">
+    <div class="phase-header" onclick="toggle('p13')">
+      <span class="phase-num">13</span>
+      <span class="phase-title">4-quadrant heatmaps & polish</span>
+      <span class="phase-badge badge-polish">polish</span>
+      <span class="chevron" id="p13-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p13-body">
+      <div class="entry"><span class="entry-dot dot-polish"></span><span class="entry-text"><strong>4-quadrant heatmaps</strong> — replaced single green heatmap with one heatmap per quadrant (Green, Blue, Red, Yellow), each with its own color ramp. Clicking a cell shows only that quadrant's tasks in the day popup.</span></div>
+      <div class="entry"><span class="entry-dot dot-polish"></span><span class="entry-text"><strong>Scrollbar height</strong> — added .heatmap-body::-webkit-scrollbar { height: 2px } to thin the horizontal scrollbar on the month timeline.</span></div>
+      <div class="entry"><span class="entry-dot dot-polish"></span><span class="entry-text"><strong>Legend spacing</strong> — added padding-bottom: 6px to .heatmap-body for breathing room between legend and scrollbar.</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggle(id) {
+  const body = document.getElementById(id + '-body');
+  const chev = document.getElementById(id + '-chev');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+</script>

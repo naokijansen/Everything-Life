@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenClaw Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #15151c;
+    --surface: #1e1e28;
+    --raised: #272734;
+    --border: #38385a;
+    --text: #f0f0fa;
+    --text-sub: #9898c8;
+    --text-dim: #5a5a80;
+    --red: #e07070;
+    --red-bg: rgba(224,112,112,0.13);
+    --red-border: rgba(224,112,112,0.30);
+    --green: #60c484;
+    --green-bg: rgba(96,196,132,0.13);
+    --green-border: rgba(96,196,132,0.30);
+    --yellow: #d4b06a;
+    --yellow-bg: rgba(212,176,106,0.13);
+    --yellow-border: rgba(212,176,106,0.30);
+    --blue: #6aa8e0;
+    --blue-bg: rgba(106,168,224,0.13);
+    --blue-border: rgba(106,168,224,0.30);
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; overflow: hidden; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+  input { font-family: inherit; border: none; outline: none; background: transparent; color: var(--text); }
+
+  #app { display: flex; flex-direction: column; height: 100vh; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px 0; flex-shrink: 0; }
+  .logo-label { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-sub); margin-bottom: 2px; }
+  .logo-name  { font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+  nav { display: flex; gap: 3px; background: var(--surface); padding: 4px; border-radius: 10px; border: 1px solid var(--border); }
+  .tab-btn { padding: 6px 18px; border-radius: 7px; font-size: 13px; font-weight: 500; color: var(--text-sub); transition: all 0.15s; text-transform: capitalize; }
+  .tab-btn.active { background: var(--raised); color: var(--text); }
+
+  /* Sync status indicator */
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); margin-right: 28px; transition: background 0.4s; flex-shrink: 0; }
+  .sync-dot.saving  { background: var(--yellow); }
+  .sync-dot.saved   { background: var(--green); }
+  .sync-dot.error   { background: var(--red); }
+
+  main { flex: 1; display: flex; gap: 16px; padding: 16px 28px 28px; min-height: 0; overflow: hidden; }
+
+  .quadrant-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .axis-x { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-sub); text-align: center; padding: 5px 0; flex-shrink: 0; }
+  .middle-row { flex: 1; display: flex; min-height: 0; }
+  .axis-y { writing-mode: vertical-rl; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-sub); display: flex; align-items: center; justify-content: center; width: 18px; flex-shrink: 0; }
+  .axis-y.left  { transform: rotate(180deg); margin-right: 10px; }
+  .axis-y.right { margin-left: 10px; }
+  .grid { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 8px; min-height: 0; }
+
+  .qpanel { border-radius: 13px; padding: 14px 15px; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+  .qpanel.red    { background: var(--red-bg);    border: 1px solid var(--red-border); }
+  .qpanel.green  { background: var(--green-bg);  border: 1px solid var(--green-border); }
+  .qpanel.yellow { background: var(--yellow-bg); border: 1px solid var(--yellow-border); }
+  .qpanel.blue   { background: var(--blue-bg);   border: 1px solid var(--blue-border); }
+  .qpanel-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; flex-shrink: 0; }
+  .q-label { font-size: 14px; font-weight: 600; }
+  .q-sub   { font-size: 10px; color: var(--text-sub); margin-top: 2px; }
+  .red    .q-label { color: var(--red); }
+  .green  .q-label { color: var(--green); }
+  .yellow .q-label { color: var(--yellow); }
+  .blue   .q-label { color: var(--blue); }
+  .q-add { width: 22px; height: 22px; border-radius: 6px; font-size: 17px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.15s; }
+  .q-add:hover { opacity: 0.7; }
+  .red    .q-add { background: rgba(224,112,112,0.18); color: var(--red); }
+  .green  .q-add { background: rgba(96,196,132,0.18);  color: var(--green); }
+  .yellow .q-add { background: rgba(212,176,106,0.18); color: var(--yellow); }
+  .blue   .q-add { background: rgba(106,168,224,0.18); color: var(--blue); }
+
+  .task-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+  .task-item { display: flex; align-items: center; gap: 8px; background: rgba(21,21,30,0.6); border-radius: 7px; padding: 8px 10px; cursor: grab; transition: opacity 0.2s; user-select: none; }
+  .task-item:active { cursor: grabbing; }
+  .task-item.dragging { opacity: 0.25; }
+  .task-item.completing { opacity: 0; transform: translateX(8px); transition: opacity 0.22s, transform 0.22s; }
+  .task-list.drag-over { outline: 2px dashed var(--border); outline-offset: 3px; border-radius: 8px; background: rgba(255,255,255,0.02); }
+  .qpanel.red.drag-over    .task-list { outline-color: var(--red); }
+  .qpanel.green.drag-over  .task-list { outline-color: var(--green); }
+  .qpanel.yellow.drag-over .task-list { outline-color: var(--yellow); }
+  .qpanel.blue.drag-over   .task-list { outline-color: var(--blue); }
+  .task-check { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; }
+  .task-check:hover { opacity: 0.6; }
+  .red    .task-check { border: 1.5px solid rgba(224,112,112,0.6); }
+  .green  .task-check { border: 1.5px solid rgba(96,196,132,0.6); }
+  .yellow .task-check { border: 1.5px solid rgba(212,176,106,0.6); }
+  .blue   .task-check { border: 1.5px solid rgba(106,168,224,0.6); }
+  .task-text { font-size: 14px; line-height: 1.3; flex: 1; }
+  .task-empty { font-size: 12px; color: var(--text-dim); padding: 2px 0; }
+
+  .add-row { display: flex; align-items: center; gap: 8px; background: var(--surface); border-radius: 7px; padding: 8px 10px; }
+  .red    .add-row { border: 1px solid rgba(224,112,112,0.35); }
+  .green  .add-row { border: 1px solid rgba(96,196,132,0.35); }
+  .yellow .add-row { border: 1px solid rgba(212,176,106,0.35); }
+  .blue   .add-row { border: 1px solid rgba(106,168,224,0.35); }
+  .add-ghost { width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0; opacity: 0.3; }
+  .red    .add-ghost { border: 1.5px solid var(--red); }
+  .green  .add-ghost { border: 1.5px solid var(--green); }
+  .yellow .add-ghost { border: 1.5px solid var(--yellow); }
+  .blue   .add-ghost { border: 1.5px solid var(--blue); }
+  .add-input { font-size: 14px; flex: 1; }
+  .add-input::placeholder { color: var(--text-dim); }
+
+  .done-stack { width: 230px; flex-shrink: 0; background: var(--surface); border-radius: 14px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .done-top { padding: 15px 18px 13px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .done-lbl { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-sub); margin-bottom: 4px; }
+  .done-row { display: flex; align-items: baseline; justify-content: space-between; }
+  .done-count { font-size: 28px; font-weight: 600; letter-spacing: -0.04em; }
+  .done-archive-btn { font-size: 11px; color: var(--text-dim); }
+  .done-archive-btn:hover { color: var(--green); }
+  .done-list { flex: 1; overflow-y: auto; padding: 13px 18px; display: flex; flex-direction: column; gap: 11px; }
+  .done-item { cursor: context-menu; }
+  .done-item-text { font-size: 13px; color: var(--text-sub); text-decoration: line-through; line-height: 1.4; }
+  .done-meta { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
+  .done-dot  { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .done-time { font-size: 11px; color: var(--text-dim); }
+  .done-empty { font-size: 13px; color: var(--text-dim); }
+
+  #ctx-menu { position: fixed; z-index: 999; background: var(--raised); border: 1px solid var(--border); border-radius: 10px; padding: 5px; min-width: 175px; box-shadow: 0 10px 36px rgba(0,0,0,0.55); display: none; }
+  #ctx-menu.visible { display: block; }
+  .ctx-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); padding: 6px 10px 4px; }
+  .ctx-item { display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: 6px; font-size: 13px; color: var(--text-sub); cursor: pointer; transition: background 0.1s; }
+  .ctx-item:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+  .ctx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Heatmap */
+  .heatmap-wrap { flex: 1; display: flex; flex-direction: column; overflow-y: auto; gap: 32px; padding: 4px 0 20px; }
+  .heatmap-section { flex-shrink: 0; }
+  .heatmap-section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .heatmap-section-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .heatmap-title { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+  .heatmap-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .heatmap-body { overflow-x: auto; overflow-y: hidden; flex-shrink: 0; padding-bottom: 6px; }
+  .heatmap-body::-webkit-scrollbar { height: 2px; }
+  .heatmap-months { display: flex; margin-bottom: 6px; padding-left: 30px; }
+  .heatmap-grid-wrap { display: flex; gap: 6px; }
+  .heatmap-day-labels { display: flex; flex-direction: column; justify-content: space-between; padding: 1px 0; width: 24px; flex-shrink: 0; }
+  .heatmap-day-label { font-size: 9px; color: var(--text-dim); height: 12px; line-height: 12px; }
+  .heatmap-cols { display: flex; gap: 3px; }
+  .heatmap-col  { display: flex; flex-direction: column; gap: 3px; }
+  .heatmap-cell { width: 12px; height: 12px; border-radius: 2px; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; position: relative; flex-shrink: 0; }
+  .heatmap-cell:hover { transform: scale(1.5); box-shadow: 0 2px 10px rgba(0,0,0,0.5); z-index: 2; }
+  .heatmap-legend { display: flex; align-items: center; gap: 6px; margin-top: 18px; }
+  .heatmap-legend-label { font-size: 11px; color: var(--text-dim); }
+  .heatmap-legend-cells { display: flex; gap: 3px; }
+  .legend-cell { width: 12px; height: 12px; border-radius: 2px; }
+
+  /* Day popup */
+  #day-popup { position: fixed; z-index: 998; background: var(--raised); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px 14px; min-width: 220px; max-width: 290px; box-shadow: 0 12px 40px rgba(0,0,0,0.6); display: none; }
+  #day-popup.visible { display: block; }
+  .popup-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+  .popup-date { font-size: 13px; font-weight: 600; color: var(--text); }
+  .popup-close { font-size: 18px; color: var(--text-dim); line-height: 1; margin-top: -1px; }
+  .popup-close:hover { color: var(--text-sub); }
+  .popup-count { font-size: 11px; color: var(--text-dim); margin-bottom: 12px; }
+  .popup-task { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .popup-dot  { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .popup-task-text { font-size: 13px; color: var(--text-sub); }
+  .popup-empty { font-size: 13px; color: var(--text-dim); }
+
+  /* Loading screen */
+  #loading { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; z-index: 9999; transition: opacity 0.3s; }
+  #loading.gone { opacity: 0; pointer-events: none; }
+  .loading-logo { font-size: 22px; font-weight: 600; letter-spacing: -0.03em; }
+  .loading-sub  { font-size: 12px; color: var(--text-dim); }
+  .loading-error { font-size: 13px; color: var(--red); max-width: 340px; text-align: center; line-height: 1.5; }
+
+  .placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 13px; }
+
+  @media (max-width: 640px) {
+    header { padding: 14px 16px 0; }
+    main { padding: 12px 16px 20px; flex-direction: column; overflow-y: auto; }
+    html, body { overflow: auto; }
+    #app { height: auto; min-height: 100vh; }
+    .done-stack { width: 100%; height: 220px; }
+    .quadrant-wrap { min-height: 70vh; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Loading screen shown until API responds -->
+<div id="loading">
+  <div class="loading-logo">OpenClaw</div>
+  <div class="loading-sub" id="loading-msg">Connecting…</div>
+</div>
+
+<div id="app">
+  <header>
+    <div>
+      <div class="logo-label">OpenClaw</div>
+      <div class="logo-name">Dashboard</div>
+    </div>
+    <div style="display:flex;align-items:center;">
+      <!-- Small dot in header shows save status: grey=idle, yellow=saving, green=saved, red=error -->
+      <div class="sync-dot" id="sync-dot" title="Sync status"></div>
+      <nav id="nav">
+        <button class="tab-btn active" data-tab="quadrant">Quadrant</button>
+        <button class="tab-btn" data-tab="calendar">Calendar</button>
+        <button class="tab-btn" data-tab="heatmap">Heatmap</button>
+      </nav>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<div id="ctx-menu"><div class="ctx-label">Move back to</div></div>
+<div id="day-popup"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG — edit these two lines before deploying
+// ─────────────────────────────────────────────────────────────────────────────
+const API_URL = "https://dashboard.robbertkanado.com"; // ← your Cloudflare subdomain
+const API_KEY = "e30358b6ecf2cacd34ad172c06146d50cd95cc1a10ee8faa7264688689eba76e";        // ← same as OPENCLAW_KEY on server
+// ─────────────────────────────────────────────────────────────────────────────
+
+const Q_META = {
+  red:    { label: "Temptations",     sub: "want to · counterproductive", color: "#e07070" },
+  green:  { label: "The Work",        sub: "want to · productive",        color: "#60c484" },
+  yellow: { label: "Procrastination", sub: "don't want · pointless",      color: "#d4b06a" },
+  blue:   { label: "Obligations",     sub: "don't want · need to",        color: "#6aa8e0" },
+};
+
+const Q_HEAT_COLORS = {
+  red: [
+    null,
+    "rgba(224,112,112,0.22)",
+    "rgba(224,112,112,0.42)",
+    "rgba(224,112,112,0.62)",
+    "rgba(224,112,112,0.82)",
+    "rgba(224,112,112,1.00)",
+  ],
+  green: [
+    null,
+    "rgba(96,196,132,0.22)",
+    "rgba(96,196,132,0.42)",
+    "rgba(96,196,132,0.62)",
+    "rgba(96,196,132,0.82)",
+    "rgba(96,196,132,1.00)",
+  ],
+  yellow: [
+    null,
+    "rgba(212,176,106,0.22)",
+    "rgba(212,176,106,0.42)",
+    "rgba(212,176,106,0.62)",
+    "rgba(212,176,106,0.82)",
+    "rgba(212,176,106,1.00)",
+  ],
+  blue: [
+    null,
+    "rgba(106,168,224,0.22)",
+    "rgba(106,168,224,0.42)",
+    "rgba(106,168,224,0.62)",
+    "rgba(106,168,224,0.82)",
+    "rgba(106,168,224,1.00)",
+  ],
+};
+
+function heatColor(n, q) {
+  const colors = Q_HEAT_COLORS[q];
+  if (n === 0) return null;
+  if (n === 1) return colors[1];
+  if (n <= 3)  return colors[2];
+  if (n <= 6)  return colors[3];
+  if (n <= 10) return colors[4];
+  return colors[5];
+}
+
+// ── State (populated from API on load) ───────────────────────────────────────
+let state = {
+  tasks: { red: [], green: [], yellow: [], blue: [] },
+  done: [],
+  history: {},
+  tab: "quadrant",
+  addingIn: null,
+  nextId: 20,
+};
+
+let drag = { taskId: null, fromQ: null };
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+const syncDot = document.getElementById("sync-dot");
+
+async function apiGet(path) {
+  const r = await fetch(`${API_URL}${path}`, {
+    headers: { "x-api-key": API_KEY }
+  });
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+async function apiPost(path, body) {
+  const r = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { "x-api-key": API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`API ${r.status}`);
+  return r.json();
+}
+
+// Debounced save — fires 600 ms after last change
+let saveTimer = null;
+function saveState() {
+  clearTimeout(saveTimer);
+  syncDot.className = "sync-dot saving";
+  saveTimer = setTimeout(async () => {
+    try {
+      // Strip UI-only fields before sending
+      const { tab, addingIn, ...persistable } = state;
+      await apiPost("/api/state", persistable);
+      syncDot.className = "sync-dot saved";
+      setTimeout(() => { syncDot.className = "sync-dot"; }, 2000);
+    } catch (err) {
+      console.error("Save failed:", err);
+      syncDot.className = "sync-dot error";
+    }
+  }, 600);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+async function boot() {
+  const loadingMsg = document.getElementById("loading-msg");
+  const loading    = document.getElementById("loading");
+  try {
+    loadingMsg.textContent = "Loading state…";
+    const saved = await apiGet("/api/state");
+    // Merge saved into state (preserve UI-only fields)
+    Object.assign(state, saved, { tab: "quadrant", addingIn: null });
+    loading.classList.add("gone");
+    setTimeout(() => loading.remove(), 350);
+    render();
+  } catch (err) {
+    loadingMsg.textContent = "";
+    document.getElementById("loading").insertAdjacentHTML("beforeend",
+      `<div class="loading-error">Could not reach the API.<br><br>
+       Check that the server is running and that API_URL / API_KEY are correct in index.html.<br><br>
+       <span style="color:var(--text-dim);font-size:11px">${err.message}</span></div>`);
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function nowTime() { return new Date().toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }); }
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+function formatDay(str) {
+  return new Date(str + "T12:00:00").toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+}
+
+// ── Tab nav ───────────────────────────────────────────────────────────────────
+document.getElementById("nav").addEventListener("click", e => {
+  const btn = e.target.closest(".tab-btn");
+  if (!btn) return;
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  state.tab = btn.dataset.tab;
+  render();
+});
+
+// ── Context menu ──────────────────────────────────────────────────────────────
+const ctxMenu = document.getElementById("ctx-menu");
+let ctxIdx = null;
+
+window.showCtxMenu = function(e, i) {
+  e.preventDefault();
+  ctxIdx = i;
+  ctxMenu.innerHTML = `<div class="ctx-label">Move back to</div>` +
+    Object.keys(Q_META).map(q => `
+      <div class="ctx-item" data-q="${q}">
+        <div class="ctx-dot" style="background:${Q_META[q].color}"></div>
+        ${Q_META[q].label}
+      </div>`).join("");
+  place(ctxMenu, e);
+  ctxMenu.classList.add("visible");
+};
+
+ctxMenu.addEventListener("click", e => {
+  const item = e.target.closest(".ctx-item");
+  if (!item || ctxIdx === null) return;
+  const di = state.done[ctxIdx];
+  state.done.splice(ctxIdx, 1);
+  state.tasks[item.dataset.q].push({ id: di.id, text: di.text });
+  closeCtx(); render(); saveState();
+});
+
+function closeCtx() { ctxMenu.classList.remove("visible"); ctxIdx = null; }
+
+// ── Day popup ─────────────────────────────────────────────────────────────────
+const popup = document.getElementById("day-popup");
+window.openDayPopup = function(e, key, filterQ) {
+  e.stopPropagation();
+  const allTasks = state.history[key] || [];
+  const tasks = filterQ ? allTasks.filter(t => t.q === filterQ) : allTasks;
+  popup.innerHTML = `
+    <div class="popup-header">
+      <div class="popup-date">${formatDay(key)}</div>
+      <button class="popup-close" onclick="closePopup()">×</button>
+    </div>
+    <div class="popup-count">${tasks.length} task${tasks.length !== 1 ? "s" : ""} completed</div>
+    ${tasks.length
+      ? tasks.map(t => `<div class="popup-task"><div class="popup-dot" style="background:${Q_META[t.q]?.color||"#888"}"></div><div class="popup-task-text">${esc(t.text)}</div></div>`).join("")
+      : `<div class="popup-empty">Nothing logged.</div>`}`;
+  place(popup, e);
+  popup.classList.add("visible");
+};
+window.closePopup = function() { popup.classList.remove("visible"); };
+
+function place(el, e) {
+  el.style.left = (e.clientX + 10) + "px";
+  el.style.top  = (e.clientY + 10) + "px";
+  requestAnimationFrame(() => {
+    const r = el.getBoundingClientRect();
+    if (r.right  > window.innerWidth  - 10) el.style.left = (e.clientX - r.width  - 10) + "px";
+    if (r.bottom > window.innerHeight - 10) el.style.top  = (e.clientY - r.height - 10) + "px";
+  });
+}
+
+document.addEventListener("click", () => { closeCtx(); closePopup(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeCtx(); closePopup(); } });
+
+// ── Task actions ──────────────────────────────────────────────────────────────
+window.completeTask = function(q, id) {
+  const task = state.tasks[q].find(t => t.id === id);
+  if (!task) return;
+  const el = document.querySelector(`[data-id="${id}"]`);
+  if (el) { el.classList.add("completing"); setTimeout(finish, 230); }
+  else finish();
+  function finish() {
+    state.tasks[q] = state.tasks[q].filter(t => t.id !== id);
+    state.done.unshift({ ...task, q, time: nowTime() });
+    render(); saveState();
+  }
+};
+
+window.openAdd = function(q) {
+  state.addingIn = state.addingIn === q ? null : q;
+  render();
+  if (state.addingIn) setTimeout(() => { const i = document.getElementById("task-input"); if (i) i.focus(); }, 30);
+};
+window.confirmAdd = function(q) {
+  const inp = document.getElementById("task-input");
+  const text = inp?.value.trim();
+  if (text) state.tasks[q].push({ id: state.nextId++, text });
+  state.addingIn = null; render(); saveState();
+};
+window.cancelAdd = function() { state.addingIn = null; render(); };
+
+// Archive button in Done panel — also calls the API /archive endpoint
+window.clearDone = async function() {
+  if (!state.done.length) return;
+  try {
+    await apiPost("/api/archive", {});
+    // Update local state to match what server just did
+    const key = todayKey();
+    if (!state.history[key]) state.history[key] = [];
+    state.done.forEach(t => state.history[key].push({ text: t.text, q: t.q }));
+    state.done = [];
+    render();
+  } catch (err) {
+    console.error("Archive failed:", err);
+  }
+};
+
+// ── Drag & drop ───────────────────────────────────────────────────────────────
+function initDragDrop() {
+  document.querySelectorAll(".task-item[data-id]").forEach(el => {
+    el.setAttribute("draggable", "true");
+    el.addEventListener("dragstart", e => {
+      drag.taskId = parseInt(el.dataset.id);
+      drag.fromQ  = el.closest(".qpanel").dataset.q;
+      setTimeout(() => el.classList.add("dragging"), 0);
+      e.dataTransfer.effectAllowed = "move";
+    });
+    el.addEventListener("dragend", () => {
+      el.classList.remove("dragging");
+      document.querySelectorAll(".qpanel").forEach(p => p.classList.remove("drag-over"));
+    });
+  });
+  document.querySelectorAll(".qpanel").forEach(panel => {
+    const q = panel.dataset.q;
+    panel.addEventListener("dragover",  e => { e.preventDefault(); panel.classList.add("drag-over"); });
+    panel.addEventListener("dragleave", e => { if (!panel.contains(e.relatedTarget)) panel.classList.remove("drag-over"); });
+    panel.addEventListener("drop", e => {
+      e.preventDefault();
+      panel.classList.remove("drag-over");
+      if (!drag.taskId || q === drag.fromQ) return;
+      const task = state.tasks[drag.fromQ].find(t => t.id === drag.taskId);
+      if (!task) return;
+      state.tasks[drag.fromQ] = state.tasks[drag.fromQ].filter(t => t.id !== drag.taskId);
+      state.tasks[q].push(task);
+      drag = { taskId: null, fromQ: null };
+      render(); saveState();
+    });
+  });
+}
+
+// ── Renderers ─────────────────────────────────────────────────────────────────
+function renderPanel(q) {
+  const m = Q_META[q];
+  const rows = state.tasks[q].map(t => `
+    <div class="task-item" data-id="${t.id}">
+      <button class="task-check" onclick="completeTask('${q}',${t.id})"></button>
+      <span class="task-text">${esc(t.text)}</span>
+    </div>`).join("");
+  const addRow = state.addingIn === q ? `
+    <div class="add-row">
+      <div class="add-ghost"></div>
+      <input id="task-input" class="add-input" placeholder="New task…"
+        onkeydown="if(event.key==='Enter')confirmAdd('${q}');if(event.key==='Escape')cancelAdd();" />
+    </div>` : "";
+  const empty = !state.tasks[q].length && state.addingIn !== q ? `<div class="task-empty">Empty</div>` : "";
+  return `
+    <div class="qpanel ${q}" data-q="${q}">
+      <div class="qpanel-header">
+        <div><div class="q-label">${m.label}</div><div class="q-sub">${m.sub}</div></div>
+        <button class="q-add" onclick="openAdd('${q}')">+</button>
+      </div>
+      <div class="task-list">${rows}${addRow}${empty}</div>
+    </div>`;
+}
+
+function renderDone() {
+  const items = state.done.map((t, i) => `
+    <div class="done-item" oncontextmenu="showCtxMenu(event,${i})">
+      <div class="done-item-text">${esc(t.text)}</div>
+      <div class="done-meta">
+        <div class="done-dot" style="background:${Q_META[t.q].color}"></div>
+        <div class="done-time">${t.time}</div>
+      </div>
+    </div>`).join("");
+  return `
+    <div class="done-stack">
+      <div class="done-top">
+        <div class="done-lbl">Done today</div>
+        <div class="done-row">
+          <div class="done-count">${state.done.length}</div>
+          ${state.done.length ? `<button class="done-archive-btn" onclick="clearDone()">archive →</button>` : ""}
+        </div>
+      </div>
+      <div class="done-list">
+        ${state.done.length ? items : `<div class="done-empty">Nothing done yet.</div>`}
+      </div>
+    </div>`;
+}
+
+function renderSingleHeatmap(q) {
+  const today = new Date();
+  const todayStr = todayKey();
+  const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const m = Q_META[q];
+  const colors = Q_HEAT_COLORS[q];
+
+  const allCells = [];
+  for (let i = 364; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    allCells.push({ key, d: new Date(d), dow: d.getDay(), month: d.getMonth() });
+  }
+
+  const padded = [...Array(allCells[0].dow).fill(null), ...allCells];
+  const weeks = [];
+  for (let i = 0; i < padded.length; i += 7) weeks.push(padded.slice(i, i + 7));
+
+  let lastMonth = -1;
+  const monthRow = weeks.map(week => {
+    const first = week.find(c => c);
+    if (first && first.month !== lastMonth) {
+      lastMonth = first.month;
+      return `<div style="min-width:${15*7}px;font-size:10px;color:var(--text-sub);letter-spacing:0.04em">${MONTHS[first.month]}</div>`;
+    }
+    return `<div style="min-width:${15*7}px"></div>`;
+  }).join("");
+
+  const cols = weeks.map(week => {
+    const cells = week.map(c => {
+      if (!c) return `<div style="width:12px;height:12px"></div>`;
+      const n = (state.history[c.key] || []).filter(t => t.q === q).length;
+      const col = heatColor(n, q);
+      const isToday = c.key === todayStr;
+      const bg = col ? `background:${col}` : `background:var(--raised)`;
+      const ring = isToday ? `box-shadow:0 0 0 1.5px ${m.color};` : "";
+      return `<div class="heatmap-cell" style="${bg};${ring}" onclick="openDayPopup(event,'${c.key}','${q}')"></div>`;
+    }).join("");
+    return `<div class="heatmap-col">${cells}</div>`;
+  }).join("");
+
+  const total = Object.values(state.history).reduce((s, a) => s + a.filter(t => t.q === q).length, 0);
+  const days  = Object.values(state.history).filter(a => a.some(t => t.q === q)).length;
+
+  const legend = [null, ...colors.slice(1)].map(c =>
+    `<div class="legend-cell" style="background:${c || "var(--raised)"}"></div>`).join("");
+
+  return `
+    <div class="heatmap-section">
+      <div class="heatmap-section-header">
+        <div class="heatmap-section-dot" style="background:${m.color}"></div>
+        <div>
+          <div class="heatmap-title" style="color:${m.color}">${m.label}</div>
+          <div class="heatmap-sub">${total} task${total !== 1 ? "s" : ""} across ${days} active day${days !== 1 ? "s" : ""}</div>
+        </div>
+      </div>
+      <div class="heatmap-body">
+        <div class="heatmap-months">${monthRow}</div>
+        <div class="heatmap-grid-wrap">
+          <div class="heatmap-day-labels">
+            <div class="heatmap-day-label">Sun</div>
+            <div class="heatmap-day-label" style="color:transparent">M</div>
+            <div class="heatmap-day-label">Tue</div>
+            <div class="heatmap-day-label" style="color:transparent">W</div>
+            <div class="heatmap-day-label">Thu</div>
+            <div class="heatmap-day-label" style="color:transparent">F</div>
+            <div class="heatmap-day-label">Sat</div>
+          </div>
+          <div class="heatmap-cols">${cols}</div>
+        </div>
+        <div class="heatmap-legend">
+          <div class="heatmap-legend-label">Less</div>
+          <div class="heatmap-legend-cells">${legend}</div>
+          <div class="heatmap-legend-label">More</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderHeatmap() {
+  return `
+    <div class="heatmap-wrap">
+      ${["green", "blue", "red", "yellow"].map(renderSingleHeatmap).join("")}
+    </div>`;
+}
+
+function render() {
+  const main = document.getElementById("main");
+  if (state.tab === "quadrant") {
+    main.innerHTML = `
+      <div class="quadrant-wrap">
+        <div class="axis-x">WANT TO DO</div>
+        <div class="middle-row">
+          <div class="axis-y left">Counterproductive</div>
+          <div class="grid">
+            ${renderPanel("red")}${renderPanel("green")}${renderPanel("yellow")}${renderPanel("blue")}
+          </div>
+          <div class="axis-y right">Productive</div>
+        </div>
+        <div class="axis-x">DON'T WANT TO DO</div>
+      </div>
+      ${renderDone()}`;
+    initDragDrop();
+    if (state.addingIn) setTimeout(() => { const i = document.getElementById("task-input"); if (i) i.focus(); }, 20);
+  } else if (state.tab === "heatmap") {
+    main.innerHTML = renderHeatmap();
+  } else {
+    main.innerHTML = `<div class="placeholder">Calendar view — coming soon</div>`;
+  }
+}
+
+// ── Go ────────────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
