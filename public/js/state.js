@@ -1,6 +1,6 @@
 // ── Config ───────────────────────────────────────────────────────────────────
 const API_URL = "https://sankyunao.dev";
-const API_KEY = "4b6b8f11ddc8bcfc48dcf538c98177771ec6506083d62d303481e1c38d3a8be8";
+// No API key here — auth uses a session cookie set on login.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Q_META = {
