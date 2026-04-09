@@ -195,7 +195,6 @@ window.submitCalModal = function() {
     const evData = { text, cat, allDay: true };
     if (d.mode === "edit") {
       if (dateStr !== d.dateStr) {
-        // Move to new date
         calDelete(d.dateStr, d.id);
         calAdd(dateStr, evData);
       } else {
@@ -504,18 +503,65 @@ window.calMonthDayClick = function(dateStr) {
 
 // ── Drag (move) — uses pointer events so touch works too ──────────────────────
 window.calDragStart = function(e, el, dateStr, id) {
-  if (e.pointerType==="mouse" && e.button!==0) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
   if (e.target.closest(".cal-event-resize")) return;
   e.stopPropagation();
-  const ev=(state.calendar[dateStr]||[]).find(v=>v.id===id); if (!ev) return;
+  const ev = (state.calendar[dateStr] || []).find(v => v.id === id);
+  if (!ev) return;
   if (ev.allDay) return;
-  const sm=timeToMin(ev.start), em=timeToMin(ev.end);
-  const rect=el.getBoundingClientRect();
-  // Track where in the event the user grabbed — so the event doesn't jump to cursor top
+
+  const sm = timeToMin(ev.start), em = timeToMin(ev.end);
+  const rect = el.getBoundingClientRect();
   const cursorOffsetY = e.clientY - rect.top;
-  calDrag={type:"move", dateStr, id, duration:em-sm, startX:e.clientX, startY:e.clientY,
-    initLeft:rect.left, initTop:rect.top, cursorOffsetY, el, clone:null, started:false,
-    currentDate:dateStr, currentStart:sm};
+
+  const dragData = {
+    type: "move", dateStr, id, duration: em - sm,
+    startX: e.clientX, startY: e.clientY,
+    initLeft: rect.left, initTop: rect.top,
+    cursorOffsetY, el, clone: null, started: false,
+    currentDate: dateStr, currentStart: sm
+  };
+
+  if (e.pointerType === "touch") {
+    // Touch: require ~200ms hold without finger movement before activating drag.
+    // If the finger moves more than 8px first, cancel — let the scroll happen.
+    let cancelled = false;
+    let touchTimer;
+
+    const cancelDrag = () => {
+      cancelled = true;
+      clearTimeout(touchTimer);
+      document.removeEventListener("pointermove", onEarlyMove);
+      document.removeEventListener("pointerup",   onEarlyUp);
+    };
+
+    const onEarlyMove = (me) => {
+      if (Math.abs(me.clientX - e.clientX) > 8 || Math.abs(me.clientY - e.clientY) > 8) {
+        cancelDrag();
+      }
+    };
+
+    const onEarlyUp = () => cancelDrag();
+
+    document.addEventListener("pointermove", onEarlyMove, { passive: true });
+    document.addEventListener("pointerup",   onEarlyUp,   { once: true });
+
+    touchTimer = setTimeout(() => {
+      document.removeEventListener("pointermove", onEarlyMove);
+      document.removeEventListener("pointerup",   onEarlyUp);
+      if (!cancelled) {
+        navigator.vibrate?.(30); // haptic feedback — drag is now active
+        calDrag = dragData;
+        document.addEventListener("pointermove", calMouseMove);
+        document.addEventListener("pointerup",   calMouseUp);
+      }
+    }, 200);
+
+    return;
+  }
+
+  // Mouse: activate immediately
+  calDrag = dragData;
   document.addEventListener("pointermove", calMouseMove);
   document.addEventListener("pointerup",   calMouseUp);
 };
@@ -626,15 +672,10 @@ function parseIcalDate(val, hasTzid) {
   const hh = clean.slice(9,11), mm = clean.slice(11,13);
   let date;
   if (isUTC) {
-    // Explicit UTC — let the browser convert to local
     date = new Date(`${y}-${mo}-${d}T${hh}:${mm}:00Z`);
   } else if (hasTzid) {
-    // TZID present → time is already in named timezone.
-    // We can't convert arbitrary TZID without full tz-db, so treat as local
-    // (works when user exports from a calendar set to their own timezone)
     date = new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`);
   } else {
-    // Floating time — treat as local
     date = new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`);
   }
   return {
@@ -650,7 +691,6 @@ function importIcal(icsText) {
   const toAdd   = [];
 
   for (const block of vevents) {
-    // Get value, also detect TZID on the same property line
     const getLine = key => {
       const m = block.match(new RegExp(`^(${key}(?:;[^:]*)?)\\:(.+)$`,"im"));
       if (!m) return null;
@@ -725,7 +765,6 @@ function importIcal(icsText) {
     state.calendar[dateStr].push(ev);
   }
   if (toAdd.length) {
-    // Push single bulk undo entry for the entire import
     calPush({ type:'import', added: toAdd.map(({dateStr,ev})=>({dateStr,id:ev.id})) });
     saveState();
   }
@@ -751,12 +790,10 @@ window.handleIcalFile = function(e) {
 function scrollCalToNow() {
   const scroll = document.getElementById("cal-week-scroll"); if (!scroll) return;
   const now    = new Date(); const nowMin = now.getHours()*60 + now.getMinutes();
-  // Vertical: center on current time (or 8am for other weeks)
   const targetY = (calUI.weekOffset === 0)
     ? Math.max(0, nowMin * PX_PER_MIN - scroll.clientHeight / 2 + 80)
     : 8 * HOUR_PX - 20;
   scroll.scrollTop = targetY;
-  // Horizontal: scroll today's column into view on mobile
   if (isMobile()) {
     const todayEl = document.querySelector(".cal-today-col");
     if (todayEl) {
@@ -778,9 +815,9 @@ function startCalTimeInterval() {
 }
 
 // ── Agenda (list) view ────────────────────────────────────────────────────────
-let agendaSel     = new Set(); // selected event IDs (as "dateStr|id" strings)
-let agendaBulkCat = "personal"; // persists the chosen target category across re-renders
-let agendaLastIdx = -1; // index of last clicked row, for shift-range selection
+let agendaSel     = new Set();
+let agendaBulkCat = "personal";
+let agendaLastIdx = -1;
 
 function renderCalAgenda() {
   const today = todayKey();
@@ -855,12 +892,9 @@ function initAgendaEvents() {
       if (e.target.closest(".cal-agenda-cb") || e.shiftKey) {
         const key = row.dataset.akey;
         const idx = parseInt(row.dataset.idx);
-
         if (e.shiftKey && agendaLastIdx >= 0) {
-          // Range select: toggle all rows between last click and this one
           const lo = Math.min(agendaLastIdx, idx);
           const hi = Math.max(agendaLastIdx, idx);
-          // Determine whether we're selecting or deselecting based on current row state
           const selecting = !agendaSel.has(key);
           allRows.forEach(r => {
             const ri = parseInt(r.dataset.idx);
@@ -870,12 +904,10 @@ function initAgendaEvents() {
             }
           });
         } else {
-          // Single toggle
           if (agendaSel.has(key)) agendaSel.delete(key);
           else agendaSel.add(key);
           agendaLastIdx = idx;
         }
-
         const wrap = document.querySelector(".cal-agenda-wrap");
         const savedScroll = wrap ? wrap.scrollTop : 0;
         refreshCalContent();
@@ -890,7 +922,6 @@ function initAgendaEvents() {
   });
 }
 
-// Refresh agenda list while keeping scroll position intact
 function refreshAgendaKeepScroll() {
   const wrap = document.querySelector(".cal-agenda-wrap");
   const savedScroll = wrap ? wrap.scrollTop : 0;

@@ -71,7 +71,8 @@
   .blue   .q-add { background: rgba(106,168,224,0.18); color: var(--blue); }
 
   .task-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
-  .task-item { display: flex; align-items: center; gap: 8px; background: rgba(21,21,30,0.6); border-radius: 7px; padding: 8px 10px; cursor: grab; transition: opacity 0.2s; user-select: none; }
+  /* user-select + touch-callout prevent text selection & iOS copy/paste bubble on long press */
+  .task-item { display: flex; align-items: center; gap: 8px; background: rgba(21,21,30,0.6); border-radius: 7px; padding: 8px 10px; cursor: grab; transition: opacity 0.2s; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
   .task-item:active { cursor: grabbing; }
   .task-item.dragging { opacity: 0.25; }
   .task-item.completing { opacity: 0; transform: translateX(8px); transition: opacity 0.22s, transform 0.22s; }
@@ -111,7 +112,8 @@
   .done-archive-btn { font-size: 11px; color: var(--text-dim); }
   .done-archive-btn:hover { color: var(--green); }
   .done-list { flex: 1; overflow-y: auto; padding: 13px 18px; display: flex; flex-direction: column; gap: 11px; }
-  .done-item { cursor: context-menu; }
+  /* Same touch fixes as task-item — prevents iOS callout on long press */
+  .done-item { cursor: context-menu; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .done-item-text { font-size: 13px; color: var(--text-sub); text-decoration: line-through; line-height: 1.4; }
   .done-meta { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
   .done-dot  { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
@@ -212,7 +214,7 @@
   .cal-now-overlay::before { content: ''; position: absolute; left: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
 
   /* Events */
-  .cal-event { position: absolute; left: 3px; right: 3px; border-radius: 5px; padding: 3px 6px 2px; cursor: pointer; overflow: hidden; z-index: 2; transition: filter 0.1s; user-select: none; touch-action: none; }
+  .cal-event { position: absolute; left: 3px; right: 3px; border-radius: 5px; padding: 3px 6px 2px; cursor: pointer; overflow: hidden; z-index: 2; transition: filter 0.1s; user-select: none; touch-action: none; -webkit-touch-callout: none; }
   .cal-event:hover { filter: brightness(1.18); z-index: 3; }
   .cal-event-inner { pointer-events: none; }
   .cal-event-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 1.3; }
@@ -306,7 +308,6 @@
   .cal-bulk-apply { padding: 6px 14px; border-radius: 6px; background: var(--green); color: var(--bg); font-size: 12px; font-weight: 600; }
   .cal-bulk-delete { padding: 6px 14px; border-radius: 6px; background: rgba(224,112,112,0.15); border: 1px solid rgba(224,112,112,0.3); color: var(--red); font-size: 12px; font-weight: 500; }
   .cal-bulk-clear { font-size: 12px; color: var(--text-dim); }
-  /* Reclassify styles removed — bulk edit now lives entirely in List view */
 
   @media (max-width: 640px) {
     /* Core */
