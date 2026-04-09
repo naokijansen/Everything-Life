@@ -1,29 +1,22 @@
 /**
  * OpenClaw Dashboard — Backend API
- * Express server that persists dashboard state to state.json
  *
  * Endpoints:
- *   GET  /api/auth           → check session validity (no auth required)
- *   POST /api/login          → create session (no auth required)
+ *   GET  /health             → liveness (no auth)
+ *   GET  /api/auth           → session check (no auth)
+ *   POST /api/login          → create session (no auth)
  *   POST /api/logout         → destroy session
- *   GET  /api/state          → read full state
- *   POST /api/state          → overwrite full state
- *   POST /api/archive        → archive done → history (called by cron)
- *   GET  /api/backups        → list available backup files
- *   GET  /health             → liveness check (no auth required)
- *
- * Auth: session cookie (httpOnly, secure, sameSite=strict).
- *       OPENCLAW_KEY never leaves the server — it is not sent to the browser.
+ *   GET  /api/state          → read state          [session]
+ *   POST /api/state          → overwrite state     [session]
+ *   POST /api/archive        → archive done[]      [session]
+ *   GET  /api/backups        → list backups        [session]
+ *   GET  /api/openclaw       → read feed           [session]
+ *   POST /api/openclaw       → push feed item      [x-api-key — OpenClaw bot only]
  *
  * Env vars required:
- *   OPENCLAW_KEY       — internal integrity token (rotate freely, never exposed)
+ *   OPENCLAW_KEY       — used by OpenClaw bot to push feed items (never sent to browser)
  *   SESSION_SECRET     — signs the session cookie  (openssl rand -hex 32)
  *   DASHBOARD_PASSWORD — the password you type on the login screen
- *
- * Backups:
- *   Written to ./backups/state-YYYY-MM-DD.json on every /api/archive call
- *   and once daily on the first /api/state POST of each day.
- *   Kept for BACKUP_RETAIN_DAYS (default 30). Older files are pruned automatically.
  */
 
 const express = require('express');
@@ -38,37 +31,35 @@ const PORT = 3001;
 // ── Config ───────────────────────────────────────────────────────────────────
 const STATE_FILE         = path.join(__dirname, 'state.json');
 const BACKUP_DIR         = path.join(__dirname, 'backups');
+const FEED_FILE          = path.join(__dirname, 'openclaw.json');
 const BACKUP_RETAIN_DAYS = 30;
-const API_KEY            = process.env.OPENCLAW_KEY;
+const FEED_MAX           = 200;
+
+const OPENCLAW_KEY       = process.env.OPENCLAW_KEY;
 const SESSION_SECRET     = process.env.SESSION_SECRET;
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD;
 
-if (!API_KEY || !SESSION_SECRET || !DASHBOARD_PASSWORD) {
-  console.error(
-    'ERROR: OPENCLAW_KEY, SESSION_SECRET, and DASHBOARD_PASSWORD must all be set.'
-  );
+if (!OPENCLAW_KEY || !SESSION_SECRET || !DASHBOARD_PASSWORD) {
+  console.error('ERROR: Set OPENCLAW_KEY, SESSION_SECRET, and DASHBOARD_PASSWORD before starting.');
   process.exit(1);
 }
 
 if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
 
-// ── Default state ─────────────────────────────────────────────────────────────
+// ── Default state ────────────────────────────────────────────────────────────
 const DEFAULT_STATE = {
   tasks: { red: [], green: [], yellow: [], blue: [] },
-  done:      [],
-  history:   {},
-  calendar:  {},
-  nextId:    20,
+  done: [],
+  history: {},
+  calendar: {},
+  nextId: 20,
   calNextId: 1,
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── State helpers ────────────────────────────────────────────────────────────
 function readState() {
-  try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
-  } catch {
-    return structuredClone(DEFAULT_STATE);
-  }
+  try { return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); }
+  catch { return structuredClone(DEFAULT_STATE); }
 }
 
 function writeState(s) {
@@ -76,14 +67,12 @@ function writeState(s) {
 }
 
 function todayKey() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return new Date().toISOString().slice(0, 10);
 }
 
 function validateState(s) {
   return (
-    s &&
-    typeof s === 'object' &&
-    s.tasks &&
+    s && typeof s === 'object' && s.tasks &&
     ['red', 'green', 'yellow', 'blue'].every(q => Array.isArray(s.tasks[q])) &&
     Array.isArray(s.done) &&
     typeof s.history === 'object' &&
@@ -124,9 +113,19 @@ function pruneBackups() {
   }
 }
 
+// ── Feed helpers ──────────────────────────────────────────────────────────────
+const VALID_FEED_TYPES = new Set(['event', 'news', 'alert', 'note']);
+
+function readFeed() {
+  try { return JSON.parse(fs.readFileSync(FEED_FILE, 'utf8')); }
+  catch { return []; }
+}
+
+function writeFeed(items) {
+  fs.writeFileSync(FEED_FILE, JSON.stringify(items, null, 2), 'utf8');
+}
+
 // ── Middleware ────────────────────────────────────────────────────────────────
-// Tell Express it's behind a trusted reverse proxy (Nginx/Cloudflare).
-// Required for secure cookies to work correctly when the app itself runs on HTTP.
 app.set('trust proxy', 1);
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
@@ -137,52 +136,53 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    httpOnly: true,             // JS in the browser cannot read this cookie at all
-    secure: true,               // only transmitted over HTTPS
-    sameSite: 'strict',         // never sent on cross-origin requests (CSRF protection)
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   },
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session-based auth guard — replaces the old x-api-key header check
+// Session auth — for browser requests
 function auth(req, res, next) {
   if (!req.session?.authed) return res.status(401).json({ error: 'Unauthorised' });
   next();
 }
 
+// API key auth — for OpenClaw bot only
+function botAuth(req, res, next) {
+  if (req.headers['x-api-key'] !== OPENCLAW_KEY) {
+    return res.status(401).json({ error: 'Unauthorised' });
+  }
+  next();
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-// Liveness probe — no auth
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Session check — frontend calls this on boot to decide whether to show the login screen
 app.get('/api/auth', (req, res) => {
   res.json({ ok: !!req.session?.authed });
 });
 
-// Login — validates DASHBOARD_PASSWORD and creates a session
 app.post('/api/login', (req, res) => {
   if (req.body.password === DASHBOARD_PASSWORD) {
     req.session.authed = true;
     return res.json({ ok: true });
   }
-  // Short delay makes brute-force slightly harder
   setTimeout(() => res.status(401).json({ error: 'Wrong password' }), 400);
 });
 
-// Logout — destroys the session and clears the cookie
 app.post('/api/logout', (req, res) => {
   req.session.destroy(() => res.clearCookie('connect.sid').json({ ok: true }));
 });
 
-// Read state
 app.get('/api/state', auth, (_req, res) => {
   res.json(readState());
 });
 
-// Overwrite state (frontend calls this after every mutation)
 app.post('/api/state', auth, (req, res) => {
   const s = req.body;
   if (!validateState(s)) return res.status(400).json({ error: 'Invalid state shape' });
@@ -191,7 +191,6 @@ app.post('/api/state', auth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Archive: move done[] → history[today] and clear done[]
 app.post('/api/archive', auth, (req, res) => {
   const s = readState();
   writeBackup(s, true);
@@ -207,7 +206,6 @@ app.post('/api/archive', auth, (req, res) => {
   res.json({ ok: true, archived: count });
 });
 
-// List available backups (newest first)
 app.get('/api/backups', auth, (_req, res) => {
   try {
     const files = fs.readdirSync(BACKUP_DIR)
@@ -222,6 +220,33 @@ app.get('/api/backups', auth, (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Read feed — session auth (browser)
+app.get('/api/openclaw', auth, (_req, res) => {
+  res.json({ items: readFeed() });
+});
+
+// Push feed item — bot auth only
+app.post('/api/openclaw', botAuth, (req, res) => {
+  const { type, content, title } = req.body || {};
+  if (!VALID_FEED_TYPES.has(type)) {
+    return res.status(400).json({ error: `Invalid type. Must be one of: ${[...VALID_FEED_TYPES].join(', ')}` });
+  }
+  if (!content || typeof content !== 'string' || !content.trim()) {
+    return res.status(400).json({ error: 'content must be a non-empty string' });
+  }
+  const item = {
+    id:      Date.now(),
+    type,
+    title:   (title && title.trim()) || null,
+    content: content.trim(),
+    ts:      new Date().toISOString(),
+  };
+  const items = [item, ...readFeed()].slice(0, FEED_MAX);
+  writeFeed(items);
+  console.log(`[${new Date().toISOString()}] /api/openclaw ← [${type}] ${content.slice(0, 80)}`);
+  res.json({ ok: true, id: item.id });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
