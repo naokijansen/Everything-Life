@@ -503,67 +503,49 @@ window.calMonthDayClick = function(dateStr) {
 
 // ── Drag (move) — uses pointer events so touch works too ──────────────────────
 window.calDragStart = function(e, el, dateStr, id) {
-  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (e.pointerType==="mouse" && e.button!==0) return;
   if (e.target.closest(".cal-event-resize")) return;
   e.stopPropagation();
-  const ev = (state.calendar[dateStr] || []).find(v => v.id === id);
-  if (!ev) return;
+  const ev=(state.calendar[dateStr]||[]).find(v=>v.id===id); if (!ev) return;
   if (ev.allDay) return;
-
-  const sm = timeToMin(ev.start), em = timeToMin(ev.end);
-  const rect = el.getBoundingClientRect();
+  const sm=timeToMin(ev.start), em=timeToMin(ev.end);
+  const rect=el.getBoundingClientRect();
   const cursorOffsetY = e.clientY - rect.top;
-
-  const dragData = {
-    type: "move", dateStr, id, duration: em - sm,
-    startX: e.clientX, startY: e.clientY,
-    initLeft: rect.left, initTop: rect.top,
-    cursorOffsetY, el, clone: null, started: false,
-    currentDate: dateStr, currentStart: sm
+  const pendingDrag = {
+    type:"move", dateStr, id, duration:em-sm,
+    startX:e.clientX, startY:e.clientY,
+    initLeft:rect.left, initTop:rect.top,
+    cursorOffsetY, el, clone:null, started:false,
+    currentDate:dateStr, currentStart:sm
   };
-
-  if (e.pointerType === "touch") {
-    // Touch: require ~200ms hold without finger movement before activating drag.
-    // If the finger moves more than 8px first, cancel — let the scroll happen.
-    let cancelled = false;
-    let touchTimer;
-
-    const cancelDrag = () => {
-      cancelled = true;
-      clearTimeout(touchTimer);
-      document.removeEventListener("pointermove", onEarlyMove);
-      document.removeEventListener("pointerup",   onEarlyUp);
-    };
-
-    const onEarlyMove = (me) => {
-      if (Math.abs(me.clientX - e.clientX) > 8 || Math.abs(me.clientY - e.clientY) > 8) {
-        cancelDrag();
-      }
-    };
-
-    const onEarlyUp = () => cancelDrag();
-
-    document.addEventListener("pointermove", onEarlyMove, { passive: true });
-    document.addEventListener("pointerup",   onEarlyUp,   { once: true });
-
-    touchTimer = setTimeout(() => {
-      document.removeEventListener("pointermove", onEarlyMove);
-      document.removeEventListener("pointerup",   onEarlyUp);
-      if (!cancelled) {
-        navigator.vibrate?.(30); // haptic feedback — drag is now active
-        calDrag = dragData;
-        document.addEventListener("pointermove", calMouseMove);
-        document.addEventListener("pointerup",   calMouseUp);
-      }
-    }, 200);
-
+  if (e.pointerType !== 'touch') {
+    calDrag = pendingDrag;
+    document.addEventListener("pointermove", calMouseMove);
+    document.addEventListener("pointerup",   calMouseUp);
     return;
   }
-
-  // Mouse: activate immediately
-  calDrag = dragData;
-  document.addEventListener("pointermove", calMouseMove);
-  document.addEventListener("pointerup",   calMouseUp);
+  let holdTimer = null;
+  const cancelIntent = () => {
+    clearTimeout(holdTimer);
+    document.removeEventListener('pointermove',   onEarlyMove);
+    document.removeEventListener('pointerup',     onEarlyUp);
+    document.removeEventListener('pointercancel', cancelIntent);
+  };
+  const onEarlyMove = (ev2) => {
+    if (Math.abs(ev2.clientX - pendingDrag.startX) > 8 ||
+        Math.abs(ev2.clientY - pendingDrag.startY) > 8) cancelIntent();
+  };
+  const onEarlyUp = () => cancelIntent();
+  document.addEventListener('pointermove',   onEarlyMove,  { passive: true });
+  document.addEventListener('pointerup',     onEarlyUp,    { once: true });
+  document.addEventListener('pointercancel', cancelIntent, { once: true });
+  holdTimer = setTimeout(() => {
+    cancelIntent();
+    navigator.vibrate?.(30);
+    calDrag = pendingDrag;
+    document.addEventListener("pointermove", calMouseMove);
+    document.addEventListener("pointerup",   calMouseUp);
+  }, 150);
 };
 
 // ── Drag (resize) ─────────────────────────────────────────────────────────────
@@ -571,6 +553,7 @@ window.calResizeStart = function(e, dateStr, id) {
   e.stopPropagation(); e.preventDefault();
   const ev=(state.calendar[dateStr]||[]).find(v=>v.id===id); if (!ev) return;
   const el=document.querySelector(`.cal-event[data-id="${id}"]`);
+  navigator.vibrate?.(20);
   calDrag={type:"resize", dateStr, id, startMin:timeToMin(ev.start), endMin:timeToMin(ev.end),
     startY:e.clientY, el, currentEnd:timeToMin(ev.end)};
   document.addEventListener("pointermove", calMouseMove);

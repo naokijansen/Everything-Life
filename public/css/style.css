@@ -213,8 +213,22 @@
   .cal-now-overlay { position: absolute; left: 54px; right: 0; height: 2px; background: var(--red); pointer-events: none; z-index: 5; opacity: 0.85; }
   .cal-now-overlay::before { content: ''; position: absolute; left: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--red); }
 
-  /* Events */
-  .cal-event { position: absolute; left: 3px; right: 3px; border-radius: 5px; padding: 3px 6px 2px; cursor: pointer; overflow: hidden; z-index: 2; transition: filter 0.1s; user-select: none; touch-action: none; -webkit-touch-callout: none; }
+ /* Events */
+ .cal-event {
+   position: absolute;
+   left: 3px;
+   right: 3px;
+   border-radius: 5px;
+   padding: 3px 6px 2px;
+   cursor: pointer;
+   overflow: hidden;
+   z-index: 2;
+   transition: filter 0.1s;
+   user-select: none;
+   -webkit-user-select: none;
+   -webkit-touch-callout: none;
+   touch-action: none;
+ }
   .cal-event:hover { filter: brightness(1.18); z-index: 3; }
   .cal-event-inner { pointer-events: none; }
   .cal-event-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 1.3; }
