@@ -218,6 +218,7 @@ function render() {
       if (q && id) {
         _lpTimer = setTimeout(() => {
           _lpFired = true;
+          window._cancelTouchDrag?.(); // cancel armed touch drag before showing popup
           navigator.vibrate?.(30);
           showTaskCtx(fakeEv, q, id);
         }, 480);

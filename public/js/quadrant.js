@@ -168,6 +168,102 @@ function initDragDrop() {
       render(); saveState();
     });
   });
+
+  initTouchDragDrop();
+}
+
+function initTouchDragDrop() {
+  document.querySelectorAll('.task-item[data-id]').forEach(el => {
+    el.addEventListener('touchstart', e => {
+      const panel = el.closest('.qpanel');
+      const q = panel?.dataset.q;
+      const id = parseInt(el.dataset.id);
+      if (!q || !id) return;
+
+      const touch = e.touches[0];
+      const startX = touch.clientX, startY = touch.clientY;
+      let armed = false, ghost = null, ghostInitTop = 0;
+      let insertBeforeId = null, armTimer = null;
+
+      const cleanup = () => {
+        clearTimeout(armTimer);
+        window._cancelTouchDrag = null;
+        el.style.opacity = '';
+        if (ghost) { ghost.remove(); ghost = null; }
+        document.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-insert-before'));
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend',  onEnd);
+        document.removeEventListener('touchcancel', onEnd);
+      };
+
+      const onMove = ev => {
+        const t = ev.touches[0];
+        const dx = t.clientX - startX, dy = t.clientY - startY;
+        if (!armed) {
+          if (Math.abs(dx) > 8 || Math.abs(dy) > 8) cleanup();
+          return;
+        }
+        // Create ghost on first move after arming
+        if (!ghost) {
+          const rect = el.getBoundingClientRect();
+          ghost = el.cloneNode(true);
+          ghost.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;` +
+            `width:${rect.width}px;opacity:0.85;pointer-events:none;z-index:9000;` +
+            `transform:scale(1.03);box-shadow:0 4px 20px rgba(0,0,0,0.5);border-radius:7px;`;
+          document.body.appendChild(ghost);
+          ghostInitTop = rect.top;
+          el.style.opacity = '0.25';
+        }
+        ev.preventDefault();
+        ghost.style.top = (ghostInitTop + dy) + 'px';
+        // Find insert position
+        const items = [...panel.querySelectorAll('.task-item[data-id]')];
+        items.forEach(i => i.classList.remove('drag-insert-before'));
+        insertBeforeId = null;
+        for (const item of items) {
+          if (item === el) continue;
+          const r = item.getBoundingClientRect();
+          if (t.clientY < r.top + r.height / 2) {
+            item.classList.add('drag-insert-before');
+            insertBeforeId = parseInt(item.dataset.id);
+            break;
+          }
+        }
+      };
+
+      const onEnd = () => {
+        if (armed && ghost) {
+          const tasks = state.tasks[q];
+          const fi = tasks.findIndex(t => t.id === id);
+          if (fi !== -1) {
+            const [task] = tasks.splice(fi, 1);
+            if (insertBeforeId != null) {
+              const ti = tasks.findIndex(t => t.id === insertBeforeId);
+              if (ti !== -1) tasks.splice(ti, 0, task);
+              else tasks.push(task);
+            } else {
+              tasks.push(task);
+            }
+            render(); saveState();
+          }
+        }
+        cleanup();
+      };
+
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend',  onEnd, { once: true });
+      document.addEventListener('touchcancel', onEnd, { once: true });
+
+      window._cancelTouchDrag = cleanup;
+
+      armTimer = setTimeout(() => {
+        armed = true;
+        navigator.vibrate?.(15);
+        el.style.opacity = '0.6';
+      }, 150);
+
+    }, { passive: true });
+  });
 }
 
 // ── Renderers ─────────────────────────────────────────────────────────────────
