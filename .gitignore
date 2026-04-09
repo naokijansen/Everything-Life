@@ -1,1 +1,6 @@
 node_modules/
+files_before_split/
+files/
+.DS_Store
+*.pages
+openclaw-dashboard_3*.html
