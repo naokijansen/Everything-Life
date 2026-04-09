@@ -127,6 +127,14 @@
       color: var(--text-dim, #555);
       margin-bottom: 12px;
     }
+    .feed-link {
+      color: #6aa8e0;
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .feed-link:hover {
+      text-decoration: underline;
+    }
   `;
   document.head.appendChild(s);
 })();
@@ -224,7 +232,7 @@ function buildFeedInner() {
         <span class="${badgeClass}">${escHtml(item.type)}</span>
         <div class="feed-body">
           ${titleHTML}
-          <div class="feed-item-content">${escHtml(item.content)}</div>
+          <div class="feed-item-content">${linkify(item.content)}</div>
           <div class="feed-item-ts">${feedRelTime(item.ts)}</div>
         </div>
       </div>`;
@@ -240,6 +248,15 @@ function escHtml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// Escape then turn URLs into clickable links
+function linkify(str) {
+  const escaped = escHtml(str);
+  return escaped.replace(
+    /(https?:\/\/[^\s&]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="feed-link">$1</a>'
+  );
 }
 
 // Entry point called by ui.js render()
