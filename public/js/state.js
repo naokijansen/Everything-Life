@@ -1,6 +1,6 @@
 // ── Config ───────────────────────────────────────────────────────────────────
-const API_URL = "https://sankyunao.dev"; // ← your Cloudflare subdomain
-// API_KEY is gone — auth uses a session cookie. The key never leaves the server.
+const API_URL = "https://sankyunao.dev";
+const API_KEY = "4b6b8f11ddc8bcfc48dcf538c98177771ec6506083d62d303481e1c38d3a8be8";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const Q_META = {
