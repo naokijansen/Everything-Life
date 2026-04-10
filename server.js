@@ -238,7 +238,7 @@ app.get('/api/backups', auth, (_req, res) => {
 
 // ── Memory ────────────────────────────────────────────────────────────────────
 
-app.post('/api/memory', auth, (req, res) => {
+app.post('/api/memory', botAuth, (req, res) => {
   const { content, tags = [], source = 'telegram' } = req.body;
   if (!content || !content.trim()) {
     return res.status(400).json({ error: 'content is required' });
@@ -257,7 +257,7 @@ app.post('/api/memory', auth, (req, res) => {
   res.status(201).json(entry);
 });
 
-app.get('/api/memory', auth, (req, res) => {
+app.get('/api/memory', botAuth, (req, res) => {
   let memories = readJSON(MEMORY_FILE);
   if (req.query.tag)   memories = memories.filter(m => m.tags.includes(req.query.tag));
   if (req.query.limit) memories = memories.slice(-parseInt(req.query.limit, 10));
@@ -266,7 +266,7 @@ app.get('/api/memory', auth, (req, res) => {
 
 // ── Saved ─────────────────────────────────────────────────────────────────────
 
-app.post('/api/saved', auth, (req, res) => {
+app.post('/api/saved', botAuth, (req, res) => {
   const { content, type = 'note', tags = [], sourceId = null } = req.body;
   if (!content || !content.trim()) {
     return res.status(400).json({ error: 'content is required' });
@@ -285,11 +285,11 @@ app.post('/api/saved', auth, (req, res) => {
   res.status(201).json(entry);
 });
 
-app.get('/api/saved', auth, (req, res) => {
+app.get('/api/saved', botAuth, (req, res) => {
   res.json(readJSON(SAVED_FILE));
 });
 
-app.delete('/api/saved/:id', auth, (req, res) => {
+app.delete('/api/saved/:id', botAuth, (req, res) => {
   let saved = readJSON(SAVED_FILE);
   const before = saved.length;
   saved = saved.filter(s => s.id !== req.params.id);
