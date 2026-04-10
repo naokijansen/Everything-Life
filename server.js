@@ -32,6 +32,8 @@ const PORT = 3001;
 const STATE_FILE         = path.join(__dirname, 'state.json');
 const BACKUP_DIR         = path.join(__dirname, 'backups');
 const FEED_FILE          = path.join(__dirname, 'openclaw.json');
+const MEMORY_FILE        = path.join(__dirname, 'data', 'memory.json');
+const SAVED_FILE         = path.join(__dirname, 'data', 'saved.json');
 const BACKUP_RETAIN_DAYS = 30;
 const FEED_MAX           = 200;
 
@@ -113,6 +115,18 @@ function pruneBackups() {
   }
 }
 
+function readJSON(filePath) {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function writeJSON(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
+
 // ── Feed helpers ──────────────────────────────────────────────────────────────
 const VALID_FEED_TYPES = new Set(['event', 'news', 'alert', 'note']);
 
@@ -128,7 +142,7 @@ function writeFeed(items) {
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.set('trust proxy', 1);
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }));
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'DELETE', 'OPTIONS'] }));
 app.use(express.json({ limit: '1mb' }));
 
 app.use(session({
@@ -220,6 +234,68 @@ app.get('/api/backups', auth, (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ── Memory ────────────────────────────────────────────────────────────────────
+
+app.post('/api/memory', auth, (req, res) => {
+  const { content, tags = [], source = 'telegram' } = req.body;
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'content is required' });
+  }
+  const memories = readJSON(MEMORY_FILE);
+  const entry = {
+    id:        `mem_${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    content:   content.trim(),
+    tags:      Array.isArray(tags) ? tags : [tags].filter(Boolean),
+    source,
+  };
+  memories.push(entry);
+  writeJSON(MEMORY_FILE, memories);
+  console.log(`[${new Date().toISOString()}] memory written: ${entry.id}`);
+  res.status(201).json(entry);
+});
+
+app.get('/api/memory', auth, (req, res) => {
+  let memories = readJSON(MEMORY_FILE);
+  if (req.query.tag)   memories = memories.filter(m => m.tags.includes(req.query.tag));
+  if (req.query.limit) memories = memories.slice(-parseInt(req.query.limit, 10));
+  res.json(memories);
+});
+
+// ── Saved ─────────────────────────────────────────────────────────────────────
+
+app.post('/api/saved', auth, (req, res) => {
+  const { content, type = 'note', tags = [], sourceId = null } = req.body;
+  if (!content || !content.trim()) {
+    return res.status(400).json({ error: 'content is required' });
+  }
+  const saved = readJSON(SAVED_FILE);
+  const entry = {
+    id:       `saved_${Date.now()}`,
+    savedAt:  new Date().toISOString(),
+    type,
+    content:  content.trim(),
+    tags:     Array.isArray(tags) ? tags : [tags].filter(Boolean),
+    sourceId,
+  };
+  saved.push(entry);
+  writeJSON(SAVED_FILE, saved);
+  res.status(201).json(entry);
+});
+
+app.get('/api/saved', auth, (req, res) => {
+  res.json(readJSON(SAVED_FILE));
+});
+
+app.delete('/api/saved/:id', auth, (req, res) => {
+  let saved = readJSON(SAVED_FILE);
+  const before = saved.length;
+  saved = saved.filter(s => s.id !== req.params.id);
+  if (saved.length === before) return res.status(404).json({ error: 'not found' });
+  writeJSON(SAVED_FILE, saved);
+  res.json({ deleted: req.params.id });
 });
 
 // Read feed — session auth (browser)
