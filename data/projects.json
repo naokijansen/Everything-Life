@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "proj_sloem",
+    "name": "Sloem",
+    "status": "active",
+    "phase": "Phase 2 — poem pipeline refinement",
+    "nextAction": "Revisit multi-step extraction for precision",
+    "lastWorkedOn": "2026-04-01",
+    "stack": ["Vue", "Vite", "JavaScript", "Project Gutenberg pipeline"]
+  },
+  {
+    "id": "proj_naokios",
+    "name": "NAOKI OS",
+    "status": "active",
+    "phase": "Phase 1 — Memory Foundation, Day 1",
+    "nextAction": "Wire OpenClaw to write memory automatically",
+    "lastWorkedOn": "2026-04-10",
+    "stack": ["Node.js", "Express", "Telegram bot", "JSON flat files", "PM2"]
+  },
+  {
+    "id": "proj_dashboard",
+    "name": "OpenClaw Dashboard",
+    "status": "active",
+    "phase": "Live — adding memory layer",
+    "nextAction": "Session 4: update system prompt",
+    "lastWorkedOn": "2026-04-10",
+    "stack": ["Node.js", "Express", "Nginx", "Cloudflare", "PM2", "Hetzner VPS"]
+  }
+]
