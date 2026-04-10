@@ -4,3 +4,4 @@ files/
 .DS_Store
 *.pages
 openclaw-dashboard_3*.html
+data/
