@@ -42,7 +42,7 @@ body { font-family: var(--font-sans); }
 <div class="logbook">
   <div class="logbook-header">
     <h1>Naoki's Logs — Dashboard Build Log <span class="live-pill"><span class="live-dot"></span>live</span></h1>
-    <p>https://dashboard.robbertkanado.com · last updated: April 2025</p>
+    <p>https://sankyunao.dev · last updated: April 2025</p>
   </div>
 
   <div class="phase" id="p1">
@@ -86,7 +86,7 @@ body { font-family: var(--font-sans); }
     <div class="phase-body" id="p3-body">
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>REST API</strong> (Node.js/Express) — three endpoints: read state, write state, archive done tasks. All protected with x-api-key header. State persisted to state.json. Frontend served as static files from public/.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Frontend wired to API</strong> — loads state on boot, saves after every change with 600ms debounce, loading screen on boot, sync dot in header (grey/yellow/green/red) showing save status. Archive button calls API instead of only updating local state.</span></div>
-      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Infrastructure</strong> — Node.js via nvm on Ubuntu VPS, PM2 for process persistence, Nginx as reverse proxy (port 80/443 → Node 3001), SSL via Let's Encrypt/certbot, Cloudflare DNS A record → dashboard.robbertkanado.com, ports 80 and 443 opened in ufw and Hetzner firewall, Cloudflare SSL mode set to Full.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Infrastructure</strong> — Node.js via nvm on Ubuntu VPS, PM2 for process persistence, Nginx as reverse proxy (port 80/443 → Node 3001), SSL via Let's Encrypt/certbot, Cloudflare DNS A record → sankyunao.dev, ports 80 and 443 opened in ufw and Hetzner firewall, Cloudflare SSL mode set to Full.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Midnight cron job</strong> — auto-archives any uncleared done tasks into heatmap history at midnight.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Deployment fix</strong> — corrected filename from index_1.html → index.html on server via mv.</span></div>
     </div>

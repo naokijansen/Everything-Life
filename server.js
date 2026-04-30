@@ -25,6 +25,8 @@ const fs      = require('fs');
 const path    = require('path');
 const cors    = require('cors');
 
+const { archiveState } = require('./lib/archive');
+
 const app  = express();
 const PORT = 3001;
 
@@ -206,18 +208,12 @@ app.post('/api/state', auth, (req, res) => {
 });
 
 app.post('/api/archive', auth, (req, res) => {
-  const s = readState();
+  const s     = readState();
   writeBackup(s, true);
-  const count = s.done.length;
-  if (count > 0) {
-    const key = todayKey();
-    if (!s.history[key]) s.history[key] = [];
-    s.done.forEach(t => s.history[key].push({ text: t.text, q: t.q }));
-    s.done = [];
-    writeState(s);
-  }
+  const count = archiveState(s, todayKey());
+  if (count > 0) writeState(s);
   console.log(`[${new Date().toISOString()}] /api/archive — moved ${count} task(s)`);
-  res.json({ ok: true, archived: count });
+  res.json({ ok: true, archived: count, state: s });
 });
 
 app.get('/api/backups', auth, (_req, res) => {

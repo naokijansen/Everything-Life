@@ -78,14 +78,9 @@ window.clearDone = async function() {
   if (!state.done.length) return;
   cancelPendingSave(); // prevent a pending debounced save from overwriting the archive
   try {
-    await apiPost("/api/archive", {});
-    // Update local state to match what server just did
-    const key = todayKey();
-    if (!state.history[key]) state.history[key] = [];
-    state.done.forEach(t => state.history[key].push({ text: t.text, q: t.q }));
-    state.done = [];
+    const data = await apiPost("/api/archive", {});
+    Object.assign(state, data.state);
     render();
-    saveState(); // persist the updated history immediately so it's never overwritten
   } catch (err) {
     console.error("Archive failed:", err);
     syncDot.className = "sync-dot error";

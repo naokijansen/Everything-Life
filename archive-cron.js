@@ -11,6 +11,8 @@
 const fs   = require('fs');
 const path = require('path');
 
+const { archiveState } = require('./lib/archive');
+
 const STATE_FILE = path.join(__dirname, 'state.json');
 
 function todayKey() {
@@ -25,17 +27,13 @@ try {
   const raw = fs.readFileSync(STATE_FILE, 'utf8');
   const s   = JSON.parse(raw);
 
-  if (!s.done || s.done.length === 0) {
+  const key      = todayKey();
+  const archived = archiveState(s, key);
+
+  if (archived === 0) {
     console.log(`[${new Date().toISOString()}] Nothing to archive — done[] is empty.`);
     process.exit(0);
   }
-
-  const key = todayKey();
-  if (!s.history[key]) s.history[key] = [];
-
-  const archived = s.done.length;
-  s.done.forEach(t => s.history[key].push({ text: t.text, q: t.q }));
-  s.done = [];
 
   fs.writeFileSync(STATE_FILE, JSON.stringify(s, null, 2), 'utf8');
 
