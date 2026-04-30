@@ -5,13 +5,13 @@
  * clears done[], and writes back.
  *
  * Invoked by system cron at midnight:
- *   0 0 * * * /usr/bin/node /home/ubuntu/openclaw/archive-cron.js >> /home/ubuntu/openclaw/archive.log 2>&1
+ *   0 0 * * * /usr/bin/node /home/ubuntu/openclaw/scripts/archive-cron.js >> /home/ubuntu/openclaw/archive.log 2>&1
  */
 
 const fs   = require('fs');
 const path = require('path');
 
-const { archiveState } = require('./lib/archive');
+const { archiveState } = require('../lib/archive');
 
 const STATE_FILE = path.join(__dirname, 'state.json');
 

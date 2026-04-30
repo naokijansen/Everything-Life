@@ -84,7 +84,7 @@ body { font-family: var(--font-sans); }
       <span class="chevron" id="p3-chev">▶</span>
     </div>
     <div class="phase-body" id="p3-body">
-      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>REST API</strong> (Node.js/Express) — three endpoints: read state, write state, archive done tasks. All protected with x-api-key header. State persisted to state.json. Frontend served as static files from public/.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>REST API</strong> (Node.js/Express) — initial endpoints: read state, write state, archive done tasks. Originally protected with a single x-api-key header. State persisted to state.json. Frontend served as static files from public/. Auth redesigned in Phase 14.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Frontend wired to API</strong> — loads state on boot, saves after every change with 600ms debounce, loading screen on boot, sync dot in header (grey/yellow/green/red) showing save status. Archive button calls API instead of only updating local state.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Infrastructure</strong> — Node.js via nvm on Ubuntu VPS, PM2 for process persistence, Nginx as reverse proxy (port 80/443 → Node 3001), SSL via Let's Encrypt/certbot, Cloudflare DNS A record → sankyunao.dev, ports 80 and 443 opened in ufw and Hetzner firewall, Cloudflare SSL mode set to Full.</span></div>
       <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Midnight cron job</strong> — auto-archives any uncleared done tasks into heatmap history at midnight.</span></div>
@@ -242,6 +242,67 @@ body { font-family: var(--font-sans); }
       <div class="entry"><span class="entry-dot dot-polish"></span><span class="entry-text"><strong>Legend spacing</strong> — added padding-bottom: 6px to .heatmap-body for breathing room between legend and scrollbar.</span></div>
     </div>
   </div>
+  <div class="phase" id="p14">
+    <div class="phase-header" onclick="toggle('p14')">
+      <span class="phase-num">14</span>
+      <span class="phase-title">Session auth + login screen</span>
+      <span class="phase-badge badge-infra">infra</span>
+      <span class="chevron" id="p14-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p14-body">
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Two-tier auth</strong> — replaced the single x-api-key guard with two separate middleware functions: <code>auth</code> (session cookie, for browser routes) and <code>botAuth</code> (x-api-key header, for bot-only routes). Browser never sees the API key; bot never uses a cookie.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>New endpoints</strong> — <code>GET /api/auth</code> (session check, no auth required), <code>POST /api/login</code> (creates session, 400ms delay on failure), <code>POST /api/logout</code> (destroys session, clears cookie).</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Login screen</strong> — <code>boot()</code> checks <code>/api/auth</code> on every page load. If not authenticated it renders a password form inline on the loading screen. Success reloads the page so the session cookie is picked up fresh.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Env vars</strong> — <code>SESSION_SECRET</code> (signs session cookies, <code>openssl rand -hex 32</code>) and <code>DASHBOARD_PASSWORD</code> added alongside the existing <code>OPENCLAW_KEY</code>. Server refuses to start if any are missing.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p15">
+    <div class="phase-header" onclick="toggle('p15')">
+      <span class="phase-num">15</span>
+      <span class="phase-title">OpenClaw Feed tab</span>
+      <span class="phase-badge badge-backend">backend</span>
+      <span class="chevron" id="p15-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p15-body">
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Feed tab added</strong> — fourth tab in the nav alongside Quadrant, Calendar, Heatmap. Persisted to localStorage with the other tab state.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>API endpoints</strong> — <code>GET /api/openclaw</code> (session auth, browser) and <code>POST /api/openclaw</code> (botAuth, bot only). Four validated item types: event, news, alert, note. Max 200 items stored in openclaw.json; oldest are dropped automatically.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>30-second polling</strong> — <code>startFeedPoll()</code> fetches on mount and every 30s. Poll stops when navigating away from the feed tab via <code>stopFeedPoll()</code> called from <code>render()</code>. Only the inner <code>#feed-panel</code> is patched on each poll — no full re-render.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>XSS protection</strong> — bot-pushed content runs through <code>escHtml()</code> (escapes &amp;, &lt;, &gt;, &quot;) before any DOM insertion. <code>linkify()</code> operates post-escape so the URL regex cannot inject markup.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p16">
+    <div class="phase-header" onclick="toggle('p16')">
+      <span class="phase-num">16</span>
+      <span class="phase-title">Memory &amp; saved data layer (Naoki OS Day 1)</span>
+      <span class="phase-badge badge-backend">backend</span>
+      <span class="chevron" id="p16-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p16-body">
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>data/ directory</strong> — eight personal JSON files created and gitignored: memory.json, saved.json, people.json, taste.json, finance.json, academic.json, patterns.json, projects.json. Schema defined per file before any data was written.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Memory endpoints</strong> — <code>POST /api/memory</code> (append entry with auto-generated id, ISO timestamp, content, tags array, source field), <code>GET /api/memory</code> (with <code>?tag=</code> and <code>?limit=</code> filters). All botAuth-only — never accessible from the browser.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Saved endpoints</strong> — <code>POST /api/saved</code> (save content with type, tags, optional sourceId), <code>GET /api/saved</code> (full list), <code>DELETE /api/saved/:id</code>. All botAuth-only.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>projects.json seeded</strong> — initial project states for Perch, OpenClaw, and the dashboard committed. academic.json populated with current courses and known deadlines.</span></div>
+      <div class="entry"><span class="entry-dot dot-backend"></span><span class="entry-text"><strong>Day 2 not completed</strong> — planned: hardened memory API (<code>?since=</code>, <code>GET /api/memory/tags</code>, <code>DELETE /api/memory/:id</code>) and people endpoints (<code>GET/POST/PATCH /api/people</code>). These do not exist yet.</span></div>
+    </div>
+  </div>
+
+  <div class="phase" id="p17">
+    <div class="phase-header" onclick="toggle('p17')">
+      <span class="phase-num">17</span>
+      <span class="phase-title">Architecture refactor — lib/archive.js</span>
+      <span class="phase-badge badge-infra">infra</span>
+      <span class="chevron" id="p17-chev">▶</span>
+    </div>
+    <div class="phase-body" id="p17-body">
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>lib/archive.js extracted</strong> — the "move done[] into history[dateKey], clear done[], return count" mutation was implemented in three separate places: the <code>/api/archive</code> handler, <code>scripts/archive-cron.js</code>, and as a client-side mirror in <code>clearDone()</code>. All three replaced by a single <code>archiveState(s, dateKey)</code> pure function.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Protocol change</strong> — <code>POST /api/archive</code> now returns <code>{ok, archived, state}</code> with the full post-archive state. <code>clearDone()</code> does <code>Object.assign(state, data.state)</code> instead of re-implementing the server's mutation.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>Double-write race closed</strong> — the old <code>clearDone()</code> called <code>saveState()</code> after archive, which would POST the state back immediately after the server had just written it. With the server now returning authoritative state, that trailing save was removed.</span></div>
+      <div class="entry"><span class="entry-dot dot-infra"></span><span class="entry-text"><strong>archive-cron.js moved</strong> — from project root to <code>scripts/archive-cron.js</code>. Cron path on VPS must be updated: <code>/home/ubuntu/openclaw/scripts/archive-cron.js</code>.</span></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
